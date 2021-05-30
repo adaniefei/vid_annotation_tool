@@ -27,7 +27,7 @@ It exports frames from original videos for video annotation. To ensure the annot
        > python pre_ST3D_v2.0_00_export_frames.py conf_test.conf -l "video_name_01 video_name_02 ..."
 
 #### Video Annotation Tool
-![alt text](https://github.com/adaniefei/Other/blob/images/gt_annotator.png?raw=true "Logo Title Text 1")
+![alt text](https://github.com/adaniefei/Other/blob/images/gt_annotator.png?raw=true "gt_annotator")
 
 This annotator is used to label the video objects, video segments and key-frames, and annotation data can be exported for further analysis. 
 
@@ -38,7 +38,30 @@ This annotator is used to label the video objects, video segments and key-frames
        For one specific lecture:
        > python gt_annotator.py conf_test.conf video_name
 
+The tool also has keyboard shortcuts available to make your annotation easier.
+![alt text](https://github.com/adaniefei/Other/blob/images/img_gt_annotator_shortcuts.png?raw=true "shortcuts")
+       
+- Video Playing 
+       
+       [SPACE]: Play/Pause the video stream
+       [Z]/[X]: Jump backward/forward for 1 frame
+       [A]/[S]: Jump backward/forward for 10 frames
+       [Q]/[W]: Jump backward/forward for 100 frames
+       [1]/[2]: Jump backward/forward for 1000 frames
+       [C]/[V]: Speed slower/faster for 50%
+       
+- Annotation
+       
+       [K]: Add a new object key-frame on the current segment "S_cur". This action will split the current segment into two subsegments "S_1" and "S_2". The label of either subsegments will be copied from "S_cur" directly unless it is updated. The video stream will keep playing.  
+       [E]: Add a new object key-frame on the current segment "S_cur" (similar to [K]). In addition, the tool will show the section for inputting segment label (pointed by the green arrow in the figure above) while pausing the video stream. 
+       
+- Shortcuts not included as buttons on the tool's interface
+       
+       [<]/[>]: Copy the position of the current video object from previous/next keyframe
+       
+
 ------
+
 ## Citation
 Please cite the following paper in your publication if this tool helps your research :)
 
