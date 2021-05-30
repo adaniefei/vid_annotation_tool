@@ -52,8 +52,12 @@ The tool also has keyboard shortcuts available to make your annotation easier.
        
 - Annotation
        
-       [K]: Add a new object key-frame on the current segment "S_cur". This action will split the current segment into two subsegments "S_1" and "S_2". The label of either subsegments will be copied from "S_cur" directly unless it is updated. The video stream will keep playing.  
-       [E]: Add a new object key-frame on the current segment "S_cur" (similar to [K]). In addition, the tool will show the section for inputting segment label (pointed by the green arrow in the figure above) while pausing the video stream. 
+       [K]: Add a new object key-frame on the current segment "S_cur". This action will split the current segment into two
+       subsegments "S_1" and "S_2". The label of either subsegments will be copied from "S_cur" directly unless it is updated. 
+       The video stream will keep playing.  
+       
+       [E]: Add a new object key-frame on the current segment "S_cur" (similar to [K]). In addition, the tool will show the 
+       section for inputting segment label (pointed by the green arrow in the figure above) while pausing the video stream. 
        
 - Shortcuts not included as buttons on the tool's interface
        
