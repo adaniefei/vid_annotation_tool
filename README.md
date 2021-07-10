@@ -58,6 +58,14 @@ The tool also has keyboard shortcuts available to make your annotation easier.
        
        [E]: Add a new object key-frame on the current segment "S_cur" (similar to [K]). In addition, the tool will show the 
        section for inputting segment label (pointed by the green arrow in the figure above) while pausing the video stream. 
+
+- Zoom In/Out
+
+       The [0.5x]/[2.0x] buttons aside of the "Zoom:[Percentage]" status are used to zoom in/out to show the visual detail of the 
+       video. The zooming percentage can be "100%", "200%" or "400%". 
+       
+       When the zoom status is not "100%", a vertical/horizontal scroll bar will appear on the right side of/below the display 
+       region. These two scroll bars are used to access the labeling region under the current zooming setting.
        
 - Shortcuts not included as buttons on the tool's interface
        
