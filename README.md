@@ -39,7 +39,7 @@ This annotator is used to label the video objects, video segments and key-frames
        > python gt_annotator.py conf_test.conf video_name
 
 The tool also has keyboard shortcuts available to make your annotation easier.
-![alt text](https://github.com/adaniefei/Other/blob/images/img_gt_annotator_shortcuts.png?raw=true "shortcuts")
+![alt text](https://github.com/adaniefei/Other/blob/images/img_gt_annotator_shortcuts_v2.png?raw=true "shortcuts")
        
 - Video Playing 
        
