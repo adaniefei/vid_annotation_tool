@@ -3,10 +3,15 @@ import time
 import cv2
 import numpy as np
 
-class OpenCVVideoPlayer:
+from .base_video_player import BaseVideoPlayer
+
+class OpenCVVideoPlayer(BaseVideoPlayer):
     FrameCache = 500 # around 3 GB (500, un-compressed)
 
     def __init__(self, video_files, forced_resolution=None):
+        # super(BaseVideoPlayer, self).__init__()
+        BaseVideoPlayer.__init__(self)
+
         self.current_time = None
         self.last_time = time.time()
 
@@ -15,15 +20,8 @@ class OpenCVVideoPlayer:
 
         self.video_files = video_files
 
-        self.width = None
-        self.height = None
-
-        self.playing = False
-        self.play_abs_position = 0.0
         self.play_video = 0
-        self.play_speed = 1.0
         self.play_capture = None
-        self.end_reached = False
 
         if forced_resolution is None:
             self.forced_width, self.forced_height = None, None
@@ -36,8 +34,6 @@ class OpenCVVideoPlayer:
         self.video_offsets = [0.0]
         self.frame_offsets = [0]
         self.video_frames = []
-        self.last_frame_img = None
-        self.last_frame_idx = None
 
         self.cache_images = []
         self.cache_times = []
@@ -101,17 +97,6 @@ class OpenCVVideoPlayer:
 
         self.black_frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
 
-        self.frame_changed_callback = None
-
-    def play(self):
-        self.current_time = None
-        self.last_time = time.time()
-
-        self.playing = True
-        self.end_reached = False
-
-    def pause(self):
-        self.playing = False
 
     def set_position_time(self, new_abs_position):
         # check if cache has to be cleaned (new position not in cache)
@@ -224,13 +209,11 @@ class OpenCVVideoPlayer:
 
         return next_frame, frame_number
 
-
     def __frame_in_cache(self, abs_time):
         if len(self.cache_times) == 0:
             return False
 
         return self.cache_offset <= abs_time <= self.cache_times[-1]
-
 
     def __get_cached_frame(self, abs_time):
         if self.end_reached:
@@ -273,7 +256,10 @@ class OpenCVVideoPlayer:
             pass
             # print("Not playing")
 
-        return self.last_frame_img, self.last_frame_idx
+        # last_frame_img must be updated here ....
+        frame = self.apply_frame_zoom()
+
+        return frame, self.last_frame_idx
 
     def update_video_metrics(self, video_metrics):
         self.video_lengths = video_metrics["per_video_time"]

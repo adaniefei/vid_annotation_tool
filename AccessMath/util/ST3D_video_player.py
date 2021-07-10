@@ -134,12 +134,14 @@ class ST3D_SequentialReader:
             self.last_frame_idx = self.st3D.frame_indices[self.offset]
             self.last_frame_time = self.st3D.frame_times[self.offset]
 
+from .base_video_player import BaseVideoPlayer
 
-class ST3D_VideoPlayer:
+class ST3D_VideoPlayer(BaseVideoPlayer):
     FrameCache = 500  # around 3 GB (500, un-compressed)
-    MaxZoomFactor = 2
 
     def __init__(self, cc_stability, st3d):
+        BaseVideoPlayer.__init__(self)
+
         # the original cc stability estimator
         self.cc_stability = cc_stability
         # the spatio-temporal 3D structure to visualize
@@ -150,24 +152,11 @@ class ST3D_VideoPlayer:
         self.width = self.st3D.width
         self.height = self.st3D.height
 
-        self.playing = False
-        self.play_speed = 1.0
         self.current_time = None
         self.last_time = time.time()
 
-        # allowing zoom
-        self.zoom_factor = 0
-        self.panning_x_factor = 0
-        self.panning_y_factor = 0
-
-        self.play_abs_position = 0.0
-        self.end_reached = False
-
         self.total_frames = self.st3D.frame_indices[-1]
         self.total_length = self.st3D.frame_times[-1]
-
-        self.last_frame_img = None
-        self.last_frame_idx = None
 
         self.cache_images = []
         self.cache_times = []
@@ -177,17 +166,6 @@ class ST3D_VideoPlayer:
 
         self.black_frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
 
-        self.frame_changed_callback = None
-
-    def play(self):
-        self.current_time = None
-        self.last_time = time.time()
-
-        self.playing = True
-        self.end_reached = False
-
-    def pause(self):
-        self.playing = False
 
     def get_frame(self):
         self.current_time = time.time()
@@ -212,30 +190,9 @@ class ST3D_VideoPlayer:
                 if len(self.cache_frames) > 0:
                     self.frame_changed_callback(int(self.cache_frames[self.cache_pos]), self.cache_times[self.cache_pos])
 
-        if self.zoom_factor == 0:
-            frame = self.last_frame_img
-        else:
-            cut_width = self.visible_width()
-            cut_height = self.visible_height()
-
-            cut_x = self.visible_left()
-            cut_y = self.visible_top()
-
-            frame = self.last_frame_img[cut_y:cut_y + cut_height, cut_x:cut_x + cut_width]
+        frame = self.apply_frame_zoom()
 
         return frame, self.last_frame_idx
-
-    def visible_width(self):
-        return int(self.width / pow(2, self.zoom_factor))
-
-    def visible_height(self):
-        return int(self.height / pow(2, self.zoom_factor))
-
-    def visible_left(self):
-        return int((self.width - self.visible_width()) * self.panning_x_factor)
-
-    def visible_top(self):
-        return int((self.height - self.visible_height()) * self.panning_y_factor)
 
     def __frame_in_cache(self, abs_time):
         if len(self.cache_times) == 0:
@@ -353,22 +310,6 @@ class ST3D_VideoPlayer:
             self.frame_changed_callback(int(new_abs_frame), self.play_abs_position)
 
         self.last_time = time.time()
-
-    def zoom_increase(self):
-        if self.zoom_factor < ST3D_VideoPlayer.MaxZoomFactor:
-            self.zoom_factor += 1
-
-    def zoom_decrease(self):
-        if self.zoom_factor > 0:
-            self.zoom_factor -= 1
-
-    def set_horizontal_panning(self, new_x_panning):
-        if 0.0 <= new_x_panning <= 1.0:
-            self.panning_x_factor = new_x_panning
-
-    def set_vertical_panning(self, new_y_panning):
-        if 0.0 <= new_y_panning <= 1.0:
-            self.panning_y_factor = new_y_panning
 
     def set_binary_mode(self):
         # change mode ...

@@ -5,6 +5,8 @@ import numpy as np
 
 from AccessMath.preprocessing.video_processor.image_list_processor import ImageListGenerator
 
+from .base_video_player import BaseVideoPlayer
+
 class ImageListCache(OrderedDict):
     def __init__(self, max_size=500):
         self.max_size = max_size
@@ -17,16 +19,21 @@ class ImageListCache(OrderedDict):
         self.move_to_end(key)
 
 
-class ImageListVideoPlayer(ImageListGenerator):
+class ImageListVideoPlayer(ImageListGenerator, BaseVideoPlayer):
     FrameCache = 500
     def __init__(self, folder, forced_resolution=None, file_extension='.jpg'):
-        super(ImageListVideoPlayer, self).__init__(folder, extension=file_extension, preload=False)
+        # super(ImageListVideoPlayer, self).__init__(folder, extension=file_extension, preload=False)
+        ImageListGenerator.__init__(self, folder, extension=file_extension, preload=False)
+        BaseVideoPlayer.__init__(self)
+
         if forced_resolution is None:
             self.forced_width, self.forced_height = None, None
         else:
             self.forced_width, self.forced_height = forced_resolution
+
         self.current_time = None
         self.last_time = time.time()
+
         self.sorted_keys = sorted(self.metadata.keys(), key=lambda x: int(x))
         self.virtual_len = self.metadata[self.sorted_keys[-1]]['frame_idx']
         self.actual_len = len(self.metadata) - 1
@@ -37,13 +44,11 @@ class ImageListVideoPlayer(ImageListGenerator):
         self.frame_idxs.sort()
         self.frame_times = np.asarray(list(self.virtual_time_to_image_map.keys())[1:])
         self.frame_times.sort()
-        self.play_speed = 1.0
-        self.frame_changed_callback = None
+
         self.cache = ImageListCache(self.FrameCache)
-        self.play_abs_position = 0.0
-        self.end_reached = False
-        self.playing = False
+
         self.height, self.width = self.get_image_dims()
+
         self.total_frames = self.virtual_len
         self.total_length = self.metadata[self.sorted_keys[-1]]['abs_time']
         # print(self.sorted_keys)
@@ -118,15 +123,6 @@ class ImageListVideoPlayer(ImageListGenerator):
             im = cv2.resize(im, (self.forced_width, self.forced_height), interpolation=cv2.INTER_AREA)
         return im
 
-    def play(self):
-        self.current_time = None
-        self.last_time = time.time()
-        self.playing = True
-        self.end_reached = False
-
-    def pause(self):
-        self.playing = False
-
     def set_position_frame(self, frame, notify_listeners):
         virtual_time = self.find_virtual_time_by_frame(frame)
         nearest_virtual_time = self.find_nearest_virtual_time(virtual_time)
@@ -173,7 +169,10 @@ class ImageListVideoPlayer(ImageListGenerator):
             if self.frame_changed_callback is not None:
                 self.frame_changed_callback(self.last_frame_idx, self.play_abs_position)
 
-        return self.last_frame_img, self.last_frame_idx
+        # last_frame_img must be updated here ....
+        frame = self.apply_frame_zoom()
+
+        return frame, self.last_frame_idx
 
 if __name__ == '__main__':
     from AccessMath.preprocessing.config.parameters import Parameters

@@ -18,6 +18,27 @@ class DrawingInfo:
         return (int(round(x1)) == int(round(x2)) and int(round(y1)) == int(round(y2)) and
                 int(round(w1)) == int(round(w2)) and int(round(h1)) == int(round(h2)))
 
+    def equivalent_bboxes_area(self, box1, box2):
+        x1, y1, w1, h1 = box1
+        x2, y2, w2, h2 = box2
+
+        return (int(round(w1)) == int(round(w2)) and int(round(h1)) == int(round(h2)))
+
+    def canvas_render_dist(self):
+        x1, y1, w1, h1 = self.canvas_bbox
+        x2, y2, w2, h2 = self.player_render_bbox
+
+        return (x2 - x1, y2 - y1)
+
+    def equivalent_areas(self, other):
+        if isinstance(other, DrawingInfo):
+            return (self.equivalent_bboxes_area(self.canvas_bbox, other.canvas_bbox) and
+                    self.equivalent_bboxes_area(self.player_control_bbox, other.player_control_bbox) and
+                    self.equivalent_bboxes_area(self.player_render_bbox, other.player_render_bbox) and
+                    self.canvas_render_dist() == other.canvas_render_dist())
+        else:
+            return False
+
     def __eq__(self, other):
         if isinstance(other, DrawingInfo):
             return (self.equivalent_bboxes(self.canvas_bbox, other.canvas_bbox) and

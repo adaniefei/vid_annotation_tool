@@ -13,6 +13,7 @@ from AM_CommonTools.interface.controls.screen_button import ScreenButton
 from AM_CommonTools.interface.controls.screen_canvas import ScreenCanvas
 from AM_CommonTools.interface.controls.screen_container import ScreenContainer
 from AM_CommonTools.interface.controls.screen_horizontal_scroll import ScreenHorizontalScroll
+from AM_CommonTools.interface.controls.screen_vertical_scroll import ScreenVerticalScroll
 from AM_CommonTools.interface.controls.screen_label import ScreenLabel
 from AM_CommonTools.interface.controls.screen_textbox import ScreenTextbox
 from AM_CommonTools.interface.controls.screen_textlist import ScreenTextlist
@@ -63,7 +64,7 @@ class GTContentAnnotator(Screen):
         # Base annotation elements
         self.player = None
         self.canvas = None
-        self.label_title = None
+        # self.label_title = None
         self.exit_button = None
 
         self.last_video_frame = None
@@ -81,6 +82,12 @@ class GTContentAnnotator(Screen):
         self.precision_buttons = None
         self.button_pause = None
         self.button_play = None
+        self.panning_hor_scroll = None
+        self.panning_ver_scroll = None
+        self.btn_inc_zoom = None
+        self.btn_dec_zoom = None
+        self.label_zoom_current = None
+
 
         # Container 1: Object selector and controls ...
         self.container_object_options = None
@@ -188,7 +195,15 @@ class GTContentAnnotator(Screen):
                 print(self.lecture.drawing_info)
                 print("Current Drawing parameters")
                 print(drawing_info)
-                raise Exception("Cannot load/save annotation files created with different drawing parameters (yet)")
+
+                if not drawing_info.equivalent_areas(self.lecture.drawing_info):
+                    raise Exception("Cannot load/save annotation files created with different drawing parameters (yet)")
+                else:
+                    # the player and canvas have the same size, but they have been moved in the GUI
+                    # this should not affect the relative coordinate system used in the file
+                    print("Warning: The drawing information has changed. It will be updated on save")
+                    # ... update ...
+                    self.lecture.drawing_info = drawing_info
 
             if not self.video_files == self.lecture.video_files:
                 print("Warning: Original annotation video files and current video files do not match!")
@@ -224,11 +239,14 @@ class GTContentAnnotator(Screen):
     def create_base_controllers(self):
         # main video player
         self.player = ScreenVideoPlayer("video_player", 960, 540)
-        self.player.position = (50, 100)
+        # self.player.position = (50, 100)
+        self.player.position = (50, 50)
         self.player.open_video_files(self.video_files, self.forced_resolution, self.player_type, self.img_format)
         self.player.frame_changed_callback = self.video_frame_change
         self.player.click_with_pos_callback = self.player_click
         self.player.play()
+
+
         self.elements.append(self.player)
 
         print("Total Video Length: " + TimeHelper.secondsToStr(self.player.video_player.total_length))
@@ -236,7 +254,8 @@ class GTContentAnnotator(Screen):
 
         # canvas used for annotations
         self.canvas = ScreenCanvas("canvas", 1040, 620)
-        self.canvas.position = (10, 60)
+        # self.canvas.position = (10, 60)
+        self.canvas.position = (10, 10)
         self.canvas.locked = True
         self.canvas.object_edited_callback = self.canvas_object_edited
         self.canvas.object_selected_callback = self.canvas_selection_changed
@@ -244,11 +263,11 @@ class GTContentAnnotator(Screen):
 
         # add elements....
         # TITLE
-        self.label_title = ScreenLabel("title", "ACCESS MATH - Video Annotation Tool", 28)
-        self.label_title.background = self.general_background
-        self.label_title.position = (int((self.width - self.label_title.width) / 2), 20)
-        self.label_title.set_color((255, 255, 255))
-        self.elements.append(self.label_title)
+        # self.label_title = ScreenLabel("title", "ACCESS MATH - Video Annotation Tool", 28)
+        # self.label_title.background = self.general_background
+        # self.label_title.position = (int((self.width - self.label_title.width) / 2), 20)
+        # self.label_title.set_color((255, 255, 255))
+        # self.elements.append(self.label_title)
 
         # EXIT BUTTON
         self.exit_button = ScreenButton("exit_button", "EXIT", 16, 70, 0)
@@ -268,18 +287,25 @@ class GTContentAnnotator(Screen):
         self.container_video_controls.position = (5, self.canvas.get_bottom() + 5)
         self.elements.append(self.container_video_controls)
 
-        step_1 = self.player.video_player.total_frames / 100
-        self.position_scroll = ScreenHorizontalScroll("video_position", 0, self.player.video_player.total_frames - 1, 0,
-                                                      step_1)
-        self.position_scroll.position = (5, 5)
-        self.position_scroll.width = 1040
-        self.position_scroll.scroll_callback = self.main_scroll_change
-        self.container_video_controls.append(self.position_scroll)
+        # zoom in controls
+        self.panning_hor_scroll = ScreenHorizontalScroll("panning_hor_scroll", 0, 100, 0, 10)
+        self.panning_hor_scroll.position = (5, 5)
+        self.panning_hor_scroll.width = 1040
+        self.panning_hor_scroll.scroll_callback = self.panning_hor_scroll_change
+        self.panning_hor_scroll.visible = False
+        self.container_video_controls.append(self.panning_hor_scroll)
+
+        self.panning_ver_scroll = ScreenVerticalScroll("panning_ver_scroll", 0, 100, 0, 10)
+        self.panning_ver_scroll.position = (self.canvas.get_right() + 15, self.canvas.get_top())
+        self.panning_ver_scroll.height = self.canvas.height
+        self.panning_ver_scroll.scroll_callback = self.panning_ver_scroll_change
+        self.panning_ver_scroll.visible = False
+        self.elements.append(self.panning_ver_scroll)
 
         # Frame count
         self.label_frame_count = ScreenLabel("frame_count",
                                              "Frame Count: " + str(int(self.player.video_player.total_frames)), 18)
-        self.label_frame_count.position = (15, self.position_scroll.get_bottom() + 10)
+        self.label_frame_count.position = (15, self.panning_hor_scroll.get_bottom() + 30)
         self.label_frame_count.set_color((255, 255, 255))
         self.label_frame_count.set_background((80, 80, 95))
         self.container_video_controls.append(self.label_frame_count)
@@ -319,8 +345,37 @@ class GTContentAnnotator(Screen):
         self.btn_inc_speed.click_callback = self.btn_inc_speed_click
         self.container_video_controls.append(self.btn_inc_speed)
 
+        # Player Zoom
+        self.label_zoom_current = ScreenLabel("label_zoom_current", "Zoom: 100%", 18)
+        self.label_zoom_current.position = (775, int(self.label_frame_count.get_top()))
+        self.label_zoom_current.set_color((255, 255, 255))
+        self.label_zoom_current.set_background((80, 80, 95))
+        self.container_video_controls.append(self.label_zoom_current)
+
+        # Player Zoom buttons
+        self.btn_dec_zoom = ScreenButton("btn_dec_zoom", "0.5x", 16, 70, 0)
+        self.btn_dec_zoom.set_colors((192, 255, 128), (64, 64, 64))
+        self.btn_dec_zoom.position = (self.label_zoom_current.get_left() - self.btn_dec_zoom.width - 15,
+                                       self.label_zoom_current.get_top())
+        self.btn_dec_zoom.click_callback = self.btn_dec_zoom_click
+        self.container_video_controls.append(self.btn_dec_zoom)
+
+        self.btn_inc_zoom = ScreenButton("btn_inc_zoom", "2.0x", 16, 70, 0)
+        self.btn_inc_zoom.set_colors((192, 255, 128), (64, 64, 64))
+        self.btn_inc_zoom.position = (self.label_zoom_current.get_right() + 15, self.label_zoom_current.get_top())
+        self.btn_inc_zoom.click_callback = self.btn_inc_zoom_click
+        self.container_video_controls.append(self.btn_inc_zoom)
+
+        step_1 = self.player.video_player.total_frames / 100
+        self.position_scroll = ScreenHorizontalScroll("video_position", 0, self.player.video_player.total_frames - 1, 0,
+                                                      step_1)
+        self.position_scroll.position = (5, self.label_time_current.get_bottom() + 10)
+        self.position_scroll.width = 1040
+        self.position_scroll.scroll_callback = self.main_scroll_change
+        self.container_video_controls.append(self.position_scroll)
+
         # Precision buttons ....
-        v_pos = self.label_time_current.get_bottom() + 15
+        v_pos = self.position_scroll.get_bottom() + 15
         btn_w = 70
         self.precision_buttons = {}
         for idx, value in enumerate([-1000, -100, -10, -1]):
@@ -356,7 +411,8 @@ class GTContentAnnotator(Screen):
 
     def create_object_options(self):
         self.container_object_options = ScreenContainer("container_object_options", (425, 390), self.general_background)
-        self.container_object_options.position = (self.canvas.get_right() + 5, self.canvas.get_top())
+        self.container_object_options.position = (self.width - self.container_object_options.width - 20,
+                                                    self.canvas.get_top())
 
         # ... Object selector ...
         self.object_selector = ScreenTextlist("object_selector", (295, 340), 21, (40, 40, 48), (255, 255, 255),
@@ -409,7 +465,7 @@ class GTContentAnnotator(Screen):
     def create_keyframes_buttons(self):
         self.container_keyframe_options = ScreenContainer("container_keyframe_options", (425, 150),
                                                           self.general_background)
-        self.container_keyframe_options.position = (self.canvas.get_right() + 5,
+        self.container_keyframe_options.position = (self.width - self.container_keyframe_options.width - 20,
                                                     self.container_object_options.get_bottom() + 5)
         self.container_keyframe_options.visible = False
 
@@ -502,7 +558,7 @@ class GTContentAnnotator(Screen):
     def create_video_segments_buttons(self):
         self.container_vid_seg_options = ScreenContainer("container_vid_seg_options", (425, 100),
                                                          self.general_background)
-        self.container_vid_seg_options.position = (self.canvas.get_right() + 5,
+        self.container_vid_seg_options.position = (self.width - self.container_vid_seg_options.width - 10,
                                                    self.container_keyframe_options.get_bottom() + 5)
         self.container_vid_seg_options.visible = True
 
@@ -560,7 +616,7 @@ class GTContentAnnotator(Screen):
     def create_video_segments_keyframes_buttons(self):
         self.container_vid_seg_keyframe_options = ScreenContainer("container_vid_seg_keyframe_options", (425, 100),
                                                                   self.general_background)
-        self.container_vid_seg_keyframe_options.position = (self.canvas.get_right() + 5,
+        self.container_vid_seg_keyframe_options.position = (self.width - self.container_vid_seg_keyframe_options.width - 20,
                                                             self.container_vid_seg_options.get_bottom() + 5)
         self.container_vid_seg_keyframe_options.visible = True
 
@@ -620,7 +676,7 @@ class GTContentAnnotator(Screen):
     def create_text_input_buttons(self):
         # Container for text input ....
         self.container_text_input = ScreenContainer("container_text_input", (425, 230), self.general_background)
-        self.container_text_input.position = (self.canvas.get_right() + 5, self.canvas.get_top())
+        self.container_text_input.position = (self.width - self.container_text_input.width - 20, self.canvas.get_top())
 
         # ...text box ...
         self.txt_object_name = ScreenTextbox("txt_object_name", "", 25, 280)
@@ -663,7 +719,7 @@ class GTContentAnnotator(Screen):
         # =============================================
         # special container for buttons with options for quick labeling
         self.container_segment_labels = ScreenContainer("container_segment_labels", (425, 280), self.general_background)
-        self.container_segment_labels.position = (self.canvas.get_right() + 5,
+        self.container_segment_labels.position = (self.width - self.container_segment_labels.width - 20,
                                                   self.container_text_input.get_bottom() + 10)
         self.container_segment_labels.visible = False
         self.elements.append(self.container_segment_labels)
@@ -883,14 +939,21 @@ class GTContentAnnotator(Screen):
             print("The Object named <" + id + "> already exists!")
             return False
 
+        if self.player.video_player.zoom_factor > 0:
+            translation, scale = self.compute_canvas_zoom_translation_scale()
+
+            canvas_polygon = (polygon_points * scale) + translation
+        else:
+            canvas_polygon = polygon_points
+
         # add to canvas ....
         if shape_type == VideoObject.ShapeAlignedRectangle:
-            x, y = polygon_points[0]
+            x, y = canvas_polygon[0]
             # right bottom  - left top
-            w, h = polygon_points[2] - polygon_points[0]
+            w, h = canvas_polygon[2] - canvas_polygon[0]
             self.canvas.add_rectangle_element(id, x, y, w, h)
         elif shape_type == VideoObject.ShapeQuadrilateral:
-            self.canvas.add_polygon_element(id, polygon_points)
+            self.canvas.add_polygon_element(id, canvas_polygon)
 
         # add to text list
         self.object_selector.add_option(id, name)
@@ -933,7 +996,38 @@ class GTContentAnnotator(Screen):
     def main_scroll_change(self, scroll):
         self.player.set_player_frame(int(scroll.value), True)
 
+    def compute_canvas_zoom_translation_scale(self):
+        # find origin point
+        viewport_scale = self.player.render_width / self.player.video_player.width
+        o_x = self.player.video_player.visible_left() * viewport_scale
+        o_y = self.player.video_player.visible_top() * viewport_scale
+
+        # ... find gap ...
+        gap_x, gap_y = self.lecture.drawing_info.canvas_render_dist()
+
+        scale = pow(2, self.player.video_player.zoom_factor)
+
+        t_x = gap_x - scale * (gap_x + o_x)
+        t_y = gap_y - scale * (gap_y + o_y)
+
+        translation = np.array([t_x, t_y])
+
+        return translation, scale
+
     def update_canvas_objects(self):
+        # compute visual tranformation ...
+
+        # Linear transformation of the form
+        # x_n = s_x x_o + t_x
+        # y_n = s_y y_o + t_y
+        # (first scale, then translate)
+
+        if self.player.video_player.zoom_factor == 0:
+            translation = None
+            scale = None
+        else:
+            translation, scale = self.compute_canvas_zoom_translation_scale()
+
         # update canvas objects ....
         for object_name in self.lecture.video_objects:
             shape = self.lecture[object_name].shape_type
@@ -962,14 +1056,22 @@ class GTContentAnnotator(Screen):
                 # selected object will be drawn using dashed lines if out of range ....
                 n_dashes = 1 if not selected_out else 100
 
+                if self.player.video_player.zoom_factor == 0:
+                    # Default, no zoom
+                    loc_points = loc.polygon_points
+                else:
+                    # scaled view ...
+                    loc_points = (loc.polygon_points * scale) + translation
+
                 # in range or selected object ... just draw normally ....
                 if shape == VideoObject.ShapeAlignedRectangle:
-                    x, y = loc.polygon_points[0]
-                    w, h = loc.polygon_points[2] - loc.polygon_points[0]
+                    x, y = loc_points[0]
+                    w, h = loc_points[2] - loc_points[0]
 
                     self.canvas.update_rectangle_element(object_name, x, y, w, h, loc.visible, n_dashes)
                 elif shape == VideoObject.ShapeQuadrilateral:
-                    self.canvas.update_polygon_element(object_name, loc.polygon_points, loc.visible, n_dashes)
+
+                    self.canvas.update_polygon_element(object_name, loc_points, loc.visible, n_dashes)
                 else:
                     raise Exception("Unknown Video Object Shape")
 
@@ -1071,8 +1173,14 @@ class GTContentAnnotator(Screen):
 
         prev_location = self.lecture[object_name].get_location_at(self.last_video_frame, False)
 
+        translation, scale = self.compute_canvas_zoom_translation_scale()
+        if self.player.video_player.zoom_factor == 0:
+            object_polygon = canvas_polygon
+        else:
+            object_polygon = (canvas_polygon - translation) / scale
+
         keyframe_added = self.lecture[object_name].set_location_at(self.last_video_frame, self.last_video_time, True,
-                                                                   canvas_polygon)
+                                                                   object_polygon)
 
         if keyframe_added:
             # Do not store interpolated locations
@@ -1082,7 +1190,7 @@ class GTContentAnnotator(Screen):
             prev_location = VideoObjectLocation.fromLocation(prev_location)
 
         self.changes_saved = False
-        object_location = VideoObjectLocation(True, self.last_video_frame, self.last_video_time, canvas_polygon)
+        object_location = VideoObjectLocation(True, self.last_video_frame, self.last_video_time, object_polygon)
 
         # check if the object was the last object edited
         if keyframe_added:
@@ -1153,6 +1261,7 @@ class GTContentAnnotator(Screen):
         self.canvas.locked = True
         self.container_object_options.visible = False
         self.container_video_controls.visible = False
+        self.panning_ver_scroll.visible = False
         self.container_keyframe_options.visible = False
         self.container_text_input.visible = True
         self.container_segment_labels.visible = (text_operation == 5)
@@ -1225,8 +1334,16 @@ class GTContentAnnotator(Screen):
             if (self.new_object_shape == VideoObject.ShapeAlignedRectangle or
                 self.new_object_shape == VideoObject.ShapeQuadrilateral):
                 obj_x, obj_y = self.user_selected_position
-                default_position = np.array([[obj_x, obj_y], [obj_x + 100, obj_y],
+                canvas_position = np.array([[obj_x, obj_y], [obj_x + 100, obj_y],
                                              [obj_x + 100, obj_y + 50], [obj_x, obj_y + 50]], dtype=np.float64)
+
+                if self.player.video_player.zoom_factor > 0:
+                    translation, scale = self.compute_canvas_zoom_translation_scale()
+
+                    default_position = (canvas_position - translation) / scale
+                else:
+                    default_position = canvas_position
+
             else:
                 raise Exception("Invalid VideoObject Shape")
 
@@ -1295,6 +1412,7 @@ class GTContentAnnotator(Screen):
 
         self.container_object_options.visible = True
         self.container_video_controls.visible = True
+        self.panning_ver_scroll.visible = self.panning_hor_scroll.visible
         self.container_keyframe_options.visible = (self.object_selector.selected_option_value is not None)
         self.container_text_input.visible = False
         self.container_segment_labels.visible = False
@@ -1308,6 +1426,7 @@ class GTContentAnnotator(Screen):
 
         self.container_object_options.visible = True
         self.container_video_controls.visible = True
+        self.panning_ver_scroll.visible = self.panning_hor_scroll.visible
         self.container_keyframe_options.visible = (self.object_selector.selected_option_value is not None)
         self.container_text_input.visible = False
         self.container_segment_labels.visible = False
@@ -1408,12 +1527,18 @@ class GTContentAnnotator(Screen):
 
             current_object.set_location_at(current_frame, current_time, base_loc.visible, base_loc.polygon_points)
 
+            if self.player.video_player.zoom_factor == 0:
+                canvas_polygon = base_loc.polygon_points
+            else:
+                translation, scale = self.compute_canvas_zoom_translation_scale()
+                canvas_polygon = base_loc.polygon_points * scale + translation
+
             if current_object.shape_type == VideoObject.ShapeAlignedRectangle:
-                x, y = base_loc.polygon_points[0]
-                w, h = base_loc.polygon_points[2] - base_loc.polygon_points[0]
+                x, y = canvas_polygon[0]
+                w, h = canvas_polygon[2] - canvas_polygon[0]
                 self.canvas.update_rectangle_element(selected_name, x, y, w, h, base_loc.visible)
             elif current_object.shape_type == VideoObject.ShapeQuadrilateral:
-                self.canvas.update_polygon_element(selected_name, base_loc.polygon_points, base_loc.visible)
+                self.canvas.update_polygon_element(selected_name, canvas_polygon, base_loc.visible)
 
             self.changes_saved = False
             self.undo_stack.append({
@@ -1477,12 +1602,18 @@ class GTContentAnnotator(Screen):
             # if we reach this point is because there is a location to copy from ...
             current_object.set_location_at(current_frame, current_time, base_loc.visible, base_loc.polygon_points)
 
+            if self.player.video_player.zoom_factor == 0:
+                canvas_polygon = base_loc.polygon_points
+            else:
+                translation, scale = self.compute_canvas_zoom_translation_scale()
+                canvas_polygon = base_loc.polygon_points * scale + translation
+
             if current_object.shape_type == VideoObject.ShapeAlignedRectangle:
-                x, y = base_loc.polygon_points[0]
-                w, h = base_loc.polygon_points[2] - base_loc.polygon_points[0]
+                x, y = canvas_polygon[0]
+                w, h = canvas_polygon[2] - canvas_polygon[0]
                 self.canvas.update_rectangle_element(selected_name, x, y, w, h, base_loc.visible)
             elif current_object.shape_type == VideoObject.ShapeQuadrilateral:
-                self.canvas.update_polygon_element(selected_name, base_loc.polygon_points, base_loc.visible)
+                self.canvas.update_polygon_element(selected_name, canvas_polygon, base_loc.visible)
 
             self.changes_saved = False
             self.undo_stack.append({
@@ -1968,7 +2099,15 @@ class GTContentAnnotator(Screen):
             self.prepare_confirm_input_mode(1, "", None)
         if not self.canvas.locked and button == 3:
             # find closest object (in time) which contains current point
-            adjusted_point = (adjusted_px, adjusted_py)
+            if self.player.video_player.zoom_factor == 0:
+                adjusted_point = (adjusted_px, adjusted_py)
+            else:
+                raw_point = np.array([adjusted_px, adjusted_py])
+
+                translation, scale = self.compute_canvas_zoom_translation_scale()
+                scaled_point = (raw_point - translation) / scale
+                adjusted_point = scaled_point.tolist()
+
             current_frame_idx = self.player.video_player.last_frame_idx
             closest_object = self.lecture.find_temporal_closest_point_container(adjusted_point, current_frame_idx)
             if closest_object is not None:
@@ -2049,3 +2188,31 @@ class GTContentAnnotator(Screen):
 
         # print((scancode, key))
 
+    def panning_hor_scroll_change(self, scroll):
+        self.player.video_player.set_horizontal_panning(scroll.value / 100.0)
+        self.update_canvas_objects()
+
+    def panning_ver_scroll_change(self, scroll):
+        self.player.video_player.set_vertical_panning(scroll.value / 100.0)
+        self.update_canvas_objects()
+
+    def btn_inc_zoom_click(self, button):
+        if self.player.video_player.zoom_increase():
+            self.update_zoom_options()
+
+    def btn_dec_zoom_click(self, button):
+        if self.player.video_player.zoom_decrease():
+            self.update_zoom_options()
+
+    def update_zoom_options(self):
+        if self.player.video_player.zoom_factor == 0:
+            self.label_zoom_current.set_text("Zoom: 100%")
+            self.panning_hor_scroll.visible = False
+            self.panning_ver_scroll.visible = False
+        else:
+            self.label_zoom_current.set_text("Zoom: " + str(pow(2, self.player.video_player.zoom_factor)) + "00%")
+            self.panning_hor_scroll.visible = True
+            self.panning_ver_scroll.visible = True
+
+        # update canvas!!!
+        self.update_canvas_objects()
