@@ -27,7 +27,7 @@ It exports frames from original videos for video annotation. To ensure the annot
        > python pre_ST3D_v2.0_00_export_frames.py conf_test.conf -l "video_name_01 video_name_02 ..."
 
 #### Video Annotation Tool
-![alt text](https://github.com/adaniefei/Other/blob/images/gt_annotator.png?raw=true "gt_annotator")
+![alt text](https://github.com/adaniefei/Other/blob/images/img_gt_annotator_v2.png?raw=true "gt_annotator")
 
 This annotator is used to label the video objects, video segments and key-frames, and annotation data can be exported for further analysis. 
 
