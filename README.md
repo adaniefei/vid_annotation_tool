@@ -71,7 +71,24 @@ The tool also has keyboard shortcuts available to make your annotation easier.
        
        [<]/[>]: Copy the position of the current video object from previous/next keyframe
        
-
+- "Split" feature for "QUAD" object
+![alt text](https://github.com/adaniefei/Other/blob/images/Quad_split.png?raw=true "split-quad")
+       
+       For the quadrilateral (QUAD) object, a "Split" button (see the figure above) is used to add an extra node on every edge of 
+       the object. This feature provides the flexibility to create a polygon instead of a quadrilateral for annotating in more complex
+       scenarios. For example, when two ROIs are too close on the screen, using two QUAD objects can not fully annotate each 
+       individual region without significantly overlapping the other object.
+       
+       To use the "Split" feature:
+       - (1): Select a QUAD object. 
+              The "Split" button for the QUAD object will only appear on the interface when the QUAD object is selected.
+       - (2): Click the "Split" button.
+              After this action, the QUAD object will be "unselected" in the display region. The object list will be refreshed, and the 
+              thumb of its vertical scrollbar will move to the top.
+       - (3): Select the QUAD object.
+              The additional nodes can be seen and modified as the object is selected.
+              
+              
 ------
 
 ## Citation
