@@ -97,6 +97,7 @@ class GTContentAnnotator(Screen):
         self.btn_object_add_quad = None
         self.btn_object_rename = None
         self.btn_object_remove = None
+        self.btn_object_split_poly = None
 
         # ... key-frame buttons ...
         self.container_keyframe_options = None
@@ -460,6 +461,15 @@ class GTContentAnnotator(Screen):
         self.btn_object_remove.click_callback = self.btn_object_remove_click
         self.container_object_options.append(self.btn_object_remove)
 
+        # ...... split quad / poly .....
+        self.btn_object_split_poly = ScreenButton("btn_object_split_poly", "Split", 22, 100)
+        self.btn_object_split_poly.set_colors((192, 255, 128), (64, 64, 64))
+        self.btn_object_split_poly.position = (self.container_object_options.width - self.btn_object_split_poly.width - 5,
+                                               self.btn_object_remove.get_bottom() + 55)
+        self.btn_object_split_poly.click_callback = self.btn_object_split_poly_click
+        self.btn_object_split_poly.visible = False
+        self.container_object_options.append(self.btn_object_split_poly)
+
         self.elements.append(self.container_object_options)
 
     def create_keyframes_buttons(self):
@@ -533,7 +543,7 @@ class GTContentAnnotator(Screen):
         self.container_keyframe_options.append(self.lbl_keyframe_next)
 
         # lbl_keyframe_label
-        self.lbl_keyframe_label = ScreenLabel("lbl_keyframe_label", "Segment Label: ", 21, 280, centered=0)
+        self.lbl_keyframe_label = ScreenLabel("lbl_keyframe_label", "Seg. LBL: ", 21, 280, centered=0)
         self.lbl_keyframe_label.position = (self.btn_keyframe_invisible.get_left(),
                                             self.lbl_keyframe_next.get_bottom() + 20)
         self.lbl_keyframe_label.set_color((255, 255, 255))
@@ -952,7 +962,7 @@ class GTContentAnnotator(Screen):
             # right bottom  - left top
             w, h = canvas_polygon[2] - canvas_polygon[0]
             self.canvas.add_rectangle_element(id, x, y, w, h)
-        elif shape_type == VideoObject.ShapeQuadrilateral:
+        elif shape_type in [VideoObject.ShapeQuadrilateral, VideoObject.ShapePolygon]:
             self.canvas.add_polygon_element(id, canvas_polygon)
 
         # add to text list
@@ -1044,7 +1054,7 @@ class GTContentAnnotator(Screen):
                 # out of range ...
                 if shape == VideoObject.ShapeAlignedRectangle:
                     self.canvas.update_rectangle_element(object_name, 0, 0, 0, 0, False, 1)
-                elif shape == VideoObject.ShapeQuadrilateral:
+                elif shape in [VideoObject.ShapeQuadrilateral, VideoObject.ShapePolygon]:
                     self.canvas.update_polygon_element(object_name, None, False, 1)
                 else:
                     raise Exception("Unknown Video Object Shape")
@@ -1069,7 +1079,7 @@ class GTContentAnnotator(Screen):
                     w, h = loc_points[2] - loc_points[0]
 
                     self.canvas.update_rectangle_element(object_name, x, y, w, h, loc.visible, n_dashes)
-                elif shape == VideoObject.ShapeQuadrilateral:
+                elif shape in [VideoObject.ShapeQuadrilateral, VideoObject.ShapePolygon]:
 
                     self.canvas.update_polygon_element(object_name, loc_points, loc.visible, n_dashes)
                 else:
@@ -1165,7 +1175,7 @@ class GTContentAnnotator(Screen):
             w = canvas.elements[object_name].w
             h = canvas.elements[object_name].h
             canvas_polygon = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], dtype=np.float64)
-        elif self.lecture[object_name].shape_type == VideoObject.ShapeQuadrilateral:
+        elif self.lecture[object_name].shape_type in [VideoObject.ShapeQuadrilateral, VideoObject.ShapePolygon]:
             # should be a polygon already
             canvas_polygon = canvas.elements[object_name].points
         else:
@@ -1537,7 +1547,7 @@ class GTContentAnnotator(Screen):
                 x, y = canvas_polygon[0]
                 w, h = canvas_polygon[2] - canvas_polygon[0]
                 self.canvas.update_rectangle_element(selected_name, x, y, w, h, base_loc.visible)
-            elif current_object.shape_type == VideoObject.ShapeQuadrilateral:
+            elif current_object.shape_type in [VideoObject.ShapeQuadrilateral, VideoObject.ShapePolygon]:
                 self.canvas.update_polygon_element(selected_name, canvas_polygon, base_loc.visible)
 
             self.changes_saved = False
@@ -1612,7 +1622,7 @@ class GTContentAnnotator(Screen):
                 x, y = canvas_polygon[0]
                 w, h = canvas_polygon[2] - canvas_polygon[0]
                 self.canvas.update_rectangle_element(selected_name, x, y, w, h, base_loc.visible)
-            elif current_object.shape_type == VideoObject.ShapeQuadrilateral:
+            elif current_object.shape_type in [VideoObject.ShapeQuadrilateral, VideoObject.ShapePolygon]:
                 self.canvas.update_polygon_element(selected_name, canvas_polygon, base_loc.visible)
 
             self.changes_saved = False
@@ -1690,6 +1700,10 @@ class GTContentAnnotator(Screen):
             self.btn_keyframe_add.visible = True
             self.btn_keyframe_del.visible = False
 
+            # the shape can be split if it is a quadrilateral or already a polygon
+            self.btn_object_split_poly.visible = current_object.shape_type in [VideoObject.ShapePolygon,
+                                                                               VideoObject.ShapeQuadrilateral]
+
             if loc_idx >= len(current_object.locations):
                 # out of boundaries, next is none and prev is last
                 self.lbl_keyframe_prev.visible = True
@@ -1737,7 +1751,7 @@ class GTContentAnnotator(Screen):
                         # update segment label
                         current_label = current_object.locations[loc_idx].label
                         label_txt = current_label if current_label is not None else ""
-                        self.lbl_keyframe_label.set_text("Segment Label: " + label_txt)
+                        self.lbl_keyframe_label.set_text("Seg. LBL: " + label_txt)
 
                         # show the corresponding show/hide button ...
                         self.btn_keyframe_invisible.visible = current_object.locations[loc_idx].visible
@@ -1754,7 +1768,7 @@ class GTContentAnnotator(Screen):
                         # update segment label
                         current_label = current_object.locations[loc_idx - 1].label
                         label_txt = current_label if current_label is not None else ""
-                        self.lbl_keyframe_label.set_text("Segment Label: " + label_txt)
+                        self.lbl_keyframe_label.set_text("Seg. LBL: " + label_txt)
 
                         # next keyframe is after current frame (which is a keyframe)
                         self.lbl_keyframe_next.visible = True
@@ -2216,3 +2230,46 @@ class GTContentAnnotator(Screen):
 
         # update canvas!!!
         self.update_canvas_objects()
+
+    def btn_object_split_poly_click(self, button):
+        selected_name = self.canvas.selected_element
+        current_object = self.lecture[selected_name]
+
+        tempo_object = current_object.make_polygon_split_copy()
+
+        # remove selected object .... using simulated GUI events ...
+        self.text_operation = 3
+        self.btn_text_operation_accept_click(self.btn_text_operation_accept)
+
+        # add new object ...
+        first_loc = tempo_object.locations[0]
+        self.add_object(tempo_object.id, tempo_object.name, first_loc.frame, first_loc.abs_time,
+                        tempo_object.shape_type, first_loc.polygon_points)
+
+        new_object = self.lecture[selected_name]
+        new_object.locations[0].label = first_loc.label
+        new_object.locations[0].visible = first_loc.visible
+
+        tempo_location = VideoObjectLocation.fromLocation(new_object.locations[0])
+        self.undo_stack.append({
+            "operation": "object_added",
+            "id": tempo_object.id,
+            "name": tempo_object.name,
+            "shape": tempo_object.shape_type,
+            "location": tempo_location,
+        })
+
+        # copy all existing key-frames after the first one
+        for tempo_loc in tempo_object.locations[1:]:
+            new_object.set_location_at(tempo_loc.frame, tempo_loc.abs_time, tempo_loc.visible, tempo_loc.polygon_points)
+
+            self.undo_stack.append({
+                "operation": "keyframe_added",
+                "object_id": selected_name,
+                "old_location": None,
+                "new_location": VideoObjectLocation.fromLocation(tempo_loc),
+            })
+
+        self.update_canvas_objects()
+        self.update_keyframe_buttons()
+

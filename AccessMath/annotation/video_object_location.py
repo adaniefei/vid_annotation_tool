@@ -24,6 +24,23 @@ class VideoObjectLocation:
         self.visible = visible
         self.polygon_points[:] = polygon_points
 
+    def get_split_polygon(self, n_parts=2):
+        split_poly = np.zeros((self.polygon_points.shape[0] * n_parts, 2))
+
+        # copy the points that do not need interpolation ...
+        split_poly[::n_parts, :] = self.polygon_points.copy()
+
+        shifted_points = np.zeros((self.polygon_points.shape[0], 2))
+        shifted_points[:-1] = self.polygon_points[1:].copy()
+        shifted_points[-1] = self.polygon_points[0].copy()
+
+        # do interpolation
+        for part_idx in range(1, n_parts):
+            interp_weight = part_idx / n_parts
+            split_poly[part_idx::n_parts] = self.polygon_points * (1.0 - interp_weight) + shifted_points * interp_weight
+
+        return split_poly
+
     def n_points(self):
         return self.polygon_points.shape[0]
 

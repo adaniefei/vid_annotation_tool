@@ -362,6 +362,9 @@ class LectureAnnotation:
             # logical object
             annotation.video_objects[video_object.id] = video_object
 
+        if verbose:
+            print(" -> A total of {0:d} video objects where loaded!".format(len(annotation.video_objects)))
+
         # load key-frames ...
         xml_video_keyframes_root = root.find(namespace + "VideoKeyFrames")
         xml_video_keyframes_objects = xml_video_keyframes_root.findall(namespace + "VideoKeyFrame")

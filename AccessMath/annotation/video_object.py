@@ -10,12 +10,23 @@ class VideoObject:
     # This can be expended to more arbitrary shapes in the future now that the location is polygon
     ShapeAlignedRectangle = 0
     ShapeQuadrilateral = 1
+    ShapePolygon = 2
 
     def __init__(self, id, name, shape_type):
         self.id = id
         self.name = name
         self.locations = []
         self.shape_type = shape_type
+
+    def make_polygon_split_copy(self):
+        new_poly_object = VideoObject(self.id, self.name, VideoObject.ShapePolygon)
+        for loc in self.locations:
+            split_polygon = loc.get_split_polygon()
+
+            new_loc = VideoObjectLocation(loc.visible, loc.frame, loc.abs_time, split_polygon, label=loc.label)
+            new_poly_object.locations.append(new_loc)
+
+        return new_poly_object
 
     def first_frame(self):
         return self.locations[0].frame
@@ -212,7 +223,8 @@ class VideoObject:
         else:
             shape_type = int(shape_root.text)
 
-        if not shape_type in [VideoObject.ShapeAlignedRectangle, VideoObject.ShapeQuadrilateral]:
+        if not shape_type in [VideoObject.ShapeAlignedRectangle, VideoObject.ShapeQuadrilateral,
+                              VideoObject.ShapePolygon]:
             raise Exception("VideoObject: Invalid Shape Type found!")
 
         video_object = VideoObject(object_id, object_name, shape_type)
