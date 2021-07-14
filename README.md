@@ -27,7 +27,7 @@ It exports frames from original videos for video annotation. To ensure the annot
        > python pre_ST3D_v2.0_00_export_frames.py conf_test.conf -l "video_name_01 video_name_02 ..."
 
 #### Video Annotation Tool
-![alt text](https://github.com/adaniefei/Other/blob/images/gt_annotator.png?raw=true "gt_annotator")
+![alt text](https://github.com/adaniefei/Other/blob/images/img_gt_annotator_v2.png?raw=true "gt_annotator")
 
 This annotator is used to label the video objects, video segments and key-frames, and annotation data can be exported for further analysis. 
 
@@ -39,7 +39,7 @@ This annotator is used to label the video objects, video segments and key-frames
        > python gt_annotator.py conf_test.conf video_name
 
 The tool also has keyboard shortcuts available to make your annotation easier.
-![alt text](https://github.com/adaniefei/Other/blob/images/img_gt_annotator_shortcuts.png?raw=true "shortcuts")
+![alt text](https://github.com/adaniefei/Other/blob/images/img_gt_annotator_shortcuts_v2.png?raw=true "shortcuts")
        
 - Video Playing 
        
@@ -58,6 +58,14 @@ The tool also has keyboard shortcuts available to make your annotation easier.
        
        [E]: Add a new object key-frame on the current segment "S_cur" (similar to [K]). In addition, the tool will show the 
        section for inputting segment label (pointed by the green arrow in the figure above) while pausing the video stream. 
+
+- Zoom In/Out
+
+       The [0.5x]/[2.0x] buttons aside of the "Zoom:[Percentage]" status are used to zoom in/out to show the visual detail of the 
+       video. The zooming percentage can be "100%", "200%" or "400%". 
+       
+       When the zoom status is not "100%", a vertical/horizontal scroll bar will appear on the right side of/below the display 
+       region. These two scroll bars are used to access the labeling region under the current zooming setting.
        
 - Shortcuts not included as buttons on the tool's interface
        
